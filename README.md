@@ -76,6 +76,11 @@ Edit any field and the run updates instantly: angle plot (setpoint, ±2 % band),
 lines), rise/settling time, overshoot, steady-state error, peak current and time saturated, peak output
 and motor speed, and a verdict (✅ / ⚠️ / ❌). "Pin current run" overlays the previous trace in grey.
 
+**3D view**: replays the step on a 3D motor + gearbox + output arm (0.1× by default). Drag to orbit,
+scrub with the slider (the plots show the same instant as a vertical cursor). The motor turns red while
+current/voltage is saturated, a pinned run appears as a grey arm, and the orange bar is the rotor angle
+(output × N). Plain canvas 2D perspective, no WebGL.
+
 ### Local build
 ```sh
 rustup target add wasm32-unknown-unknown
