@@ -3,6 +3,8 @@
 
 use std::cell::RefCell;
 
+mod view3d;
+
 use ps_core::{metrics, simulate, suggest_gains, verdict, Pid, Plant, Reason, SimCfg, Trace, Verdict};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
@@ -74,6 +76,12 @@ const TEXT: &[(&str, &str, &str)] = &[
     ("m_jeff", "J_eff / Kτ = N·η·Kt", "J_eff / Kτ = N·η·Kt"),
     ("na", "없음", "n/a"),
     ("angle", "각도 (deg)", "Angle (deg)"),
+    ("v_title", "3D 보기 — 스텝 응답 재생", "3D view — step response replay"),
+    ("v_play", "▶ 재생", "▶ Play"),
+    ("v_pause", "⏸ 일시정지", "⏸ Pause"),
+    ("v_speed", "재생 속도", "Speed"),
+    ("v_sat", "⚠ 포화", "⚠ saturated"),
+    ("v_hint", "드래그해서 돌려 보기 · 빨간 모터 = 전류/전압 포화 · 주황 막대 = 로터(N배 회전)", "Drag to orbit · red motor = current/voltage saturated · orange bar = rotor (N× turns)"),
     ("current", "전류 (A)", "Current (A)"),
 ];
 
@@ -219,6 +227,7 @@ fn run() {
         .collect();
     doc().get_element_by_id("metrics").unwrap().set_inner_html(&html);
     ST.with(|st| st.borrow_mut().last = Some(trace));
+    view3d::reset();
     draw();
 }
 
@@ -244,7 +253,7 @@ fn palette() -> Palette {
 }
 
 /// Plot `lines` (t, y, color) with horizontal reference lines and an optional shaded band.
-fn plot(id: &str, title: &str, lines: &[(&[f64], &[f64], &str)], hlines: &[f64], band: Option<(f64, f64)>) {
+fn plot(id: &str, title: &str, lines: &[(&[f64], &[f64], &str)], hlines: &[f64], band: Option<(f64, f64)>, cursor: Option<f64>) {
     let pal = palette();
     let cv: HtmlCanvasElement = doc().get_element_by_id(id).unwrap().dyn_into().unwrap();
     let dpr = web_sys::window().unwrap().device_pixel_ratio();
@@ -312,6 +321,14 @@ fn plot(id: &str, title: &str, lines: &[(&[f64], &[f64], &str)], hlines: &[f64],
         }
         c.stroke();
     }
+    if let Some(tc) = cursor {
+        c.set_line_width(1.0);
+        c.set_stroke_style_str(pal.fg);
+        c.begin_path();
+        c.move_to(px(tc), t);
+        c.line_to(px(tc), h - b);
+        c.stroke();
+    }
 }
 
 fn js_sys_array(v: &[f64]) -> JsValue {
@@ -326,8 +343,8 @@ fn draw() {
     ST.with(|st| {
         let st = st.borrow();
         let Some(cur) = st.last.as_ref() else {
-            plot("c_angle", tr("angle"), &[], &[], None);
-            plot("c_current", tr("current"), &[], &[], None);
+            plot("c_angle", tr("angle"), &[], &[], None, None);
+            plot("c_current", tr("current"), &[], &[], None, None);
             return;
         };
         let sp = cur.setpoint_deg;
@@ -340,9 +357,12 @@ fn draw() {
         a.push((&cur.t, &cur.theta_deg, "main"));
         i.push((&cur.t, &cur.current, "main"));
         let band = (sp - 0.02 * sp.abs(), sp + 0.02 * sp.abs());
-        plot("c_angle", tr("angle"), &a, &[sp], Some(band));
-        plot("c_current", tr("current"), &i, &[cur.i_max, -cur.i_max], None);
+        let tc = view3d::VIEW.with(|v| v.borrow().t);
+        let tc = cur.t[view3d::index_at(cur, tc)];
+        plot("c_angle", tr("angle"), &a, &[sp], Some(band), Some(tc));
+        plot("c_current", tr("current"), &i, &[cur.i_max, -cur.i_max], None, Some(tc));
     });
+    view3d::draw_view();
 }
 
 fn on(id: &str, ev: &str, f: impl FnMut() + 'static) {
@@ -409,5 +429,6 @@ pub fn start() {
     let cb = Closure::<dyn FnMut()>::new(draw);
     win.add_event_listener_with_callback("resize", cb.as_ref().unchecked_ref()).unwrap();
     cb.forget();
+    view3d::install();
     run();
 }

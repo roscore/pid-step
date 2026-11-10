@@ -34,6 +34,10 @@ td { padding:3px 6px; border-bottom:1px solid var(--line); }
 td:last-child { text-align:right; font-variant-numeric:tabular-nums; }
 canvas { width:100%; display:block; margin:8px 0; }
 #c_angle { height:280px; } #c_current { height:150px; }
+#c_view { height:340px; touch-action:none; cursor:grab; border:1px solid var(--line); border-radius:6px; }
+.vbar { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; }
+.vbar input[type=range] { flex:1 1 160px; }
+h2 { font-size:1em; margin:12px 0 0; }
 .note { color:var(--mut); font-size:.85em; }
 </style>
 </head>
@@ -92,6 +96,14 @@ canvas { width:100%; display:block; margin:8px 0; }
   <div id="verdict"></div>
   <canvas id="c_angle"></canvas>
   <canvas id="c_current"></canvas>
+  <h2 data-i18n="v_title">3D view — step response replay</h2>
+  <canvas id="c_view"></canvas>
+  <div class="vbar">
+    <button id="v_play" type="button" data-i18n="v_pause">⏸ Pause</button>
+    <input type="range" id="v_time" min="0" max="1000" value="0" aria-label="time">
+    <label><span data-i18n="v_speed">Speed</span>
+      <select id="v_speed"><option value="0.05">0.05×</option><option value="0.1" selected>0.1×</option><option value="0.25">0.25×</option><option value="1">1×</option></select></label>
+  </div>
   <button id="pin" type="button" data-i18n="pin">Pin current run</button>
   <button id="unpin" type="button" data-i18n="unpin">Clear pinned</button>
   <table id="metrics"></table>

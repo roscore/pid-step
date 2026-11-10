@@ -18,5 +18,5 @@ version = "0.3"
 features = [
   "Window", "Document", "Element", "HtmlElement", "HtmlInputElement", "HtmlSelectElement",
   "HtmlCanvasElement", "CanvasRenderingContext2d", "Event", "EventTarget", "Navigator",
-  "Storage", "MediaQueryList", "NodeList", "DomStringMap",
+  "Storage", "MediaQueryList", "NodeList", "DomStringMap", "PointerEvent", "MouseEvent",
 ]
