@@ -1,0 +1,6 @@
+[build]
+target = "index.html"
+dist = "dist"
+public_url = "/pid-step/"
+filehash = false
+pattern_script = "<script type=\"module\" src=\"{base}boot.js\"></script>"
