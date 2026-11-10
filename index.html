@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'">
+<title>pid-step</title>
+<link data-trunk rel="rust" href="crates/ps_web">
+<link data-trunk rel="copy-file" href="web/boot.js">
+<style>
+:root { --bg:#fafafa; --fg:#1d1d1f; --mut:#666; --card:#fff; --line:#ddd; --acc:#0a66c2; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#16181c; --fg:#e8e8e8; --mut:#9aa; --card:#1f2228; --line:#353a42; --acc:#5aa9ff; }
+}
+* { box-sizing: border-box; }
+body { margin:0; padding:16px; background:var(--bg); color:var(--fg);
+  font: 15px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header { display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; margin-bottom:12px; }
+h1 { font-size:1.3em; margin:0; }
+header p { margin:0; color:var(--mut); flex:1 1 300px; }
+main { display:grid; grid-template-columns: minmax(280px, 400px) 1fr; gap:16px; }
+@media (max-width: 800px) { main { grid-template-columns: 1fr; } }
+fieldset { background:var(--card); border:1px solid var(--line); border-radius:8px; margin:0 0 12px; padding:8px 12px; }
+legend { font-weight:600; padding:0 4px; }
+label { display:flex; justify-content:space-between; align-items:center; gap:8px; margin:4px 0; font-size:.92em; }
+input[type=number], select { width:9em; padding:4px; background:var(--bg); color:var(--fg);
+  border:1px solid var(--line); border-radius:4px; font:inherit; }
+button { padding:6px 12px; border:1px solid var(--acc); background:transparent; color:var(--acc);
+  border-radius:6px; font:inherit; cursor:pointer; margin:4px 4px 4px 0; }
+.out { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:12px; min-width:0; }
+#verdict { font-size:1.15em; font-weight:600; margin-bottom:8px; }
+table { border-collapse:collapse; width:100%; margin:8px 0; }
+td { padding:3px 6px; border-bottom:1px solid var(--line); }
+td:last-child { text-align:right; font-variant-numeric:tabular-nums; }
+canvas { width:100%; display:block; margin:8px 0; }
+#c_angle { height:280px; } #c_current { height:150px; }
+.note { color:var(--mut); font-size:.85em; }
+</style>
+</head>
+<body>
+<header>
+  <h1>pid-step</h1>
+  <p data-i18n="tagline">Geared robot joint: PID position-step response and saturation check.</p>
+  <button id="lang" type="button">한국어</button>
+</header>
+<main>
+<form id="form" autocomplete="off">
+  <fieldset>
+    <legend data-i18n="plant">Plant (one geared joint)</legend>
+    <label><span data-i18n="preset">Preset</span>
+      <select id="preset">
+        <option value="servo" data-i18n="servo">Small servo joint (typical)</option>
+        <option value="knee" data-i18n="knee">Humanoid knee joint (typical)</option>
+      </select></label>
+    <label><span data-i18n="j_rotor">Rotor inertia J_rotor (kg·m²)</span><input type="number" id="j_rotor" step="any"></label>
+    <label><span data-i18n="kt">Torque constant Kt (N·m/A)</span><input type="number" id="kt" step="any"></label>
+    <label><span data-i18n="r">Winding resistance R (Ω)</span><input type="number" id="r" step="any"></label>
+    <label><span data-i18n="v">Supply voltage (V)</span><input type="number" id="v" step="any"></label>
+    <label><span data-i18n="imax">Max current (A)</span><input type="number" id="imax" step="any"></label>
+    <label><span data-i18n="n">Gear ratio N</span><input type="number" id="n" step="any"></label>
+    <label><span data-i18n="eta">Gear efficiency η (0–1)</span><input type="number" id="eta" step="any"></label>
+    <label><span data-i18n="j_load">Load inertia J_load (kg·m²)</span><input type="number" id="j_load" step="any"></label>
+    <label><span data-i18n="b">Viscous friction b (N·m·s/rad)</span><input type="number" id="b" step="any"></label>
+    <label><span data-i18n="tau_c">Coulomb friction (N·m)</span><input type="number" id="tau_c" step="any"></label>
+    <label><span data-i18n="tau_g">Gravity torque (N·m)</span><input type="number" id="tau_g" step="any"></label>
+    <label><span data-i18n="max_rpm">Max motor speed (rpm)</span><input type="number" id="max_rpm" step="any"></label>
+  </fieldset>
+  <fieldset>
+    <legend data-i18n="ctrl">PID controller (output = current, A)</legend>
+    <label><span>Kp (A/rad)</span><input type="number" id="kp" step="any"></label>
+    <label><span>Ki (A/(rad·s))</span><input type="number" id="ki" step="any"></label>
+    <label><span>Kd (A·s/rad)</span><input type="number" id="kd" step="any"></label>
+    <label><span data-i18n="fc">D filter cutoff (Hz, 0 = off)</span><input type="number" id="fc" step="any"></label>
+    <label><span data-i18n="dmeas">Derivative on measurement</span><input type="checkbox" id="dmeas"></label>
+    <label><span data-i18n="fs">Sample rate (Hz)</span><input type="number" id="fs" step="any"></label>
+    <label><span data-i18n="enc">Encoder counts/rev at output (0 = ideal)</span><input type="number" id="enc" step="1" min="0"></label>
+  </fieldset>
+  <fieldset>
+    <legend data-i18n="sim">Step test</legend>
+    <label><span data-i18n="step">Step size (deg)</span><input type="number" id="step" step="any"></label>
+    <label><span data-i18n="dur">Duration (s)</span><input type="number" id="dur" step="any"></label>
+  </fieldset>
+  <fieldset>
+    <legend data-i18n="suggest">Suggest gains (pole placement)</legend>
+    <label><span data-i18n="bw">Bandwidth ω_n (Hz)</span><input type="number" id="bw" step="any" value="5"></label>
+    <label><span data-i18n="zeta">Damping ζ</span><input type="number" id="zeta" step="any" value="0.9"></label>
+    <div id="sugg" class="note"></div>
+    <button id="apply" type="button" data-i18n="apply">Apply</button>
+  </fieldset>
+</form>
+<section class="out">
+  <div id="verdict"></div>
+  <canvas id="c_angle"></canvas>
+  <canvas id="c_current"></canvas>
+  <button id="pin" type="button" data-i18n="pin">Pin current run</button>
+  <button id="unpin" type="button" data-i18n="unpin">Clear pinned</button>
+  <table id="metrics"></table>
+  <p class="note" data-i18n="model">Model: rigid joint at the output shaft, J_eff = J_load + N²·J_rotor, τ = N·η·Kt·i. Current limited by max current and back-EMF headroom (V − Kt·ω_motor)/R. Electrical inductance neglected; no backlash or compliance.</p>
+  <p class="note" data-i18n="disclaimer">Estimates only — validate on hardware with safe limits.</p>
+</section>
+</main>
+</body>
+</html>

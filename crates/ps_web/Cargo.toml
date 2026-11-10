@@ -1,0 +1,22 @@
+[package]
+name = "ps_web"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+ps_core = { path = "../ps_core" }
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+
+[dependencies.web-sys]
+version = "0.3"
+features = [
+  "Window", "Document", "Element", "HtmlElement", "HtmlInputElement", "HtmlSelectElement",
+  "HtmlCanvasElement", "CanvasRenderingContext2d", "Event", "EventTarget", "Navigator",
+  "Storage", "MediaQueryList", "NodeList", "DomStringMap",
+]

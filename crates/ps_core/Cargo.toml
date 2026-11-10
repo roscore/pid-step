@@ -1,0 +1,8 @@
+[package]
+name = "ps_core"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Geared robot joint PID step-response simulator core (no web deps)."
+
+[dependencies]
